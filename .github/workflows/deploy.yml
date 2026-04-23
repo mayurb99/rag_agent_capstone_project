@@ -44,6 +44,10 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/medical-ui:latest ./ui
           docker push ${{ secrets.DOCKER_USERNAME }}/medical-ui:latest
 
+      - name: Install GKE auth plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          
       - name: Set plugin env
         run: echo "USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $GITHUB_ENV
 
@@ -60,5 +64,4 @@ jobs:
           kubectl apply -f k8s/api-deployment.yaml
           kubectl apply -f k8s/ui-deployment.yaml
 
-      
       
