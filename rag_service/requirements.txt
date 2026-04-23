@@ -1,0 +1,6 @@
+fastapi==0.111.0
+uvicorn==0.29.0
+sentence-transformers
+pinecone-client==3.2.2
+huggingface_hub
+python-dotenv==1.0.1

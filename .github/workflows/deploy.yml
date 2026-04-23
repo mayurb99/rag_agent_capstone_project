@@ -1,0 +1,63 @@
+name: Build and Deploy to GKE
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER_NAME }}
+  GKE_ZONE: ${{ secrets.GKE_REGION }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build and push API image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/medical-api:latest ./api
+          docker push ${{ secrets.DOCKER_USERNAME }}/medical-api:latest
+
+      - name: Build and push RAG image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/medical-rag:latest ./rag_service
+          docker push ${{ secrets.DOCKER_USERNAME }}/medical-rag:latest
+
+      - name: Build and push UI image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/medical-ui:latest ./ui
+          docker push ${{ secrets.DOCKER_USERNAME }}/medical-ui:latest
+
+      - name: Set plugin env
+        run: echo "USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $GITHUB_ENV
+
+      # 🟣 Get GKE credentials
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ secrets.GKE_CLUSTER_NAME }} --region ${{ secrets.GKE_REGION }} --project ${{ secrets.GCP_PROJECT_ID }}
+
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/ingest-job.yaml
+          kubectl apply -f k8s/rag-deployment.yaml
+          kubectl apply -f k8s/api-deployment.yaml
+          kubectl apply -f k8s/ui-deployment.yaml
+
+      

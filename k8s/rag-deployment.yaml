@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rag
+  template:
+    metadata:
+      labels:
+        app: rag
+    spec:
+      containers:
+        - name: rag
+          image: mayurbrijwani/medical-rag:latest
+          ports:
+            - containerPort: 8001
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+          
+          env:
+        
+            - name: PINECONE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: PINECONE_API_KEY
+
+            - name: HUGGINGFACEHUB_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: HUGGINGFACEHUB_API_TOKEN
+
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: DB_NAME
+
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: DB_HOST
+            
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: DB_PASSWORD
+
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: DB_USER
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-service
+spec:
+  selector:
+    app: rag
+  ports:
+    - port: 8001
+      targetPort: 8001
+  type: ClusterIP

@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ingest-job
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: ingest
+          image: mayurbrijwani/medical-rag:latest
+          command: ["python", "ingest.py"]
+          env:
+        
+            - name: PINECONE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: PINECONE_API_KEY
+
+  backoffLimit: 2
